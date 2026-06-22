@@ -1,130 +1,154 @@
+import { useState, useEffect } from "react";
+import { cucianAPI } from "../service/cucianAPI";
 import PageHeader from "../components/PageHeader2";
+import GenericTable from "../components/GenericTable";
 
 export default function Antrian() {
+  const [listCucian, setListCucian] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    loadCucian();
+  }, []);
+
+  const loadCucian = async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      const data = await cucianAPI.fetchCucian();
+      setListCucian(data);
+    } catch (err) {
+      setError("Gagal memuat data antrean cucian.");
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatWaktu = (isoString) => {
+    if (!isoString) return "--:--";
+
+    const date = new Date(isoString);
+
+    return date.toLocaleTimeString("id-ID", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
   return (
-    <div className="p-6 bg-gray-100 min-h-screen">
-      
-      {/* Header */}
+    <div className="min-h-screen p-6 bg-gray-100">
       <PageHeader />
 
-      {/* List Antrian */}
-      <div className="mt-6 space-y-4">
+      {error && (
+        <div className="mt-4 p-3 bg-red-100 border border-red-300 text-red-700 rounded-lg text-sm">
+          {error}
+        </div>
+      )}
 
-        {/* A001 */}
-        <div className="flex items-center justify-between bg-white p-4 rounded-xl shadow-sm hover:shadow-md transition">
-          
-          <div className="bg-blue-600 text-white px-6 py-3 rounded-lg text-lg font-bold">
-            A001
-          </div>
+      <div className="mt-6 bg-white rounded-2xl shadow-sm overflow-hidden">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+          <h3 className="text-lg font-semibold text-gray-800">
+            Daftar Antrean Cucian ({listCucian.length})
+          </h3>
 
-          <div className="flex-1 ml-4 pl-4 border-l border-gray-200">
-            <p className="font-semibold">Budi Santoso</p>
-            <p className="text-sm text-gray-500">B 1234 CD</p>
-            <p className="text-sm text-gray-400">08:30 • Mobil</p>
-          </div>
-
-          <div className="text-right pl-4 border-l border-gray-200">
-            <span className="bg-yellow-400 text-white px-3 py-1 rounded-lg text-sm">
-              Menunggu
+          {loading && (
+            <span className="text-sm text-gray-400 animate-pulse">
+              Memperbarui...
             </span>
-            <p className="text-sm text-gray-500 mt-2">Harga</p>
-            <p className="font-semibold">Rp 50.000</p>
-          </div>
-
+          )}
         </div>
 
-        {/* A002 */}
-        <div className="flex items-center justify-between bg-white p-4 rounded-xl shadow-sm hover:shadow-md transition">
-          
-          <div className="bg-blue-600 text-white px-6 py-3 rounded-lg text-lg font-bold">
-            A002
+        {!loading && listCucian.length === 0 && (
+          <div className="py-10 text-center text-gray-400">
+            Belum ada data antrean masuk.
           </div>
+        )}
 
-          <div className="flex-1 ml-4 pl-4 border-l border-gray-200">
-            <p className="font-semibold">Siti Nurhaliza</p>
-            <p className="text-sm text-gray-500">B 5678 EF</p>
-            <p className="text-sm text-gray-400">08:45 • Motor</p>
-          </div>
+        <GenericTable
+          columns={[
+            "Kode",
+            "Pelanggan / Plat nomor",
+            "Waktu & Layanan",
+            "Status & Harga",
+          ]}
+          data={listCucian}
+          renderRow={(cucian, index) => {
+            const nomorAntrian = `A${String(index + 1).padStart(3, "0")}`;
+            const statusSaatIni = cucian.status || "Menunggu";
 
-          <div className="text-right pl-4 border-l border-gray-200">
-            <span className="bg-blue-500 text-white px-3 py-1 rounded-lg text-sm">
-              Proses
-            </span>
-            <p className="text-sm text-gray-500 mt-2">Harga</p>
-            <p className="font-semibold">Rp 25.000</p>
-          </div>
+            return (
+              <tr
+                key={cucian.id || index}
+                className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+              >
+                {/* Kode */}
+                <td className="px-6 py-5 font-bold text-blue-600 whitespace-nowrap align-middle">
+                  {nomorAntrian}
+                </td>
 
-        </div>
+                {/* Pelanggan / Plat Nomor */}
+                <td className="px-6 py-5 align-middle">
+                  <div className="font-semibold text-gray-800">
+                    {cucian.nama_pelanggan}
+                  </div>
 
-        {/* A003 */}
-        <div className="flex items-center justify-between bg-white p-4 rounded-xl shadow-sm hover:shadow-md transition">
-          
-          <div className="bg-blue-600 text-white px-6 py-3 rounded-lg text-lg font-bold">
-            A003
-          </div>
+                  <div className="mt-1 text-xs text-gray-500 uppercase tracking-wide">
+                    {cucian.no_kendaraan}
+                  </div>
+                </td>
 
-          <div className="flex-1 ml-4 pl-4 border-l border-gray-200">
-            <p className="font-semibold">Ahmad Rizki</p>
-            <p className="text-sm text-gray-500">B 9012 GH</p>
-            <p className="text-sm text-gray-400">09:00 • Mobil</p>
-          </div>
+                {/* Waktu & Layanan */}
+                <td className="px-6 py-5 align-middle">
+                  <div className="text-sm text-gray-700">
+                    {formatWaktu(cucian.created_at)} WIB
+                  </div>
 
-          <div className="text-right pl-4 border-l border-gray-200">
-            <span className="bg-blue-500 text-white px-3 py-1 rounded-lg text-sm">
-              Proses
-            </span>
-            <p className="text-sm text-gray-500 mt-2">Harga</p>
-            <p className="font-semibold">Rp 50.000</p>
-          </div>
+                  <span
+                    className={`inline-flex items-center mt-2 px-2.5 py-1 rounded-md text-xs font-medium ${
+                      cucian.jenis_layanan === "Cuci Mobil"
+                        ? "bg-blue-100 text-blue-700"
+                        : cucian.jenis_layanan === "Cuci Motor"
+                        ? "bg-purple-100 text-purple-700"
+                        : "bg-orange-100 text-orange-700"
+                    }`}
+                  >
+                    {cucian.jenis_layanan}
+                  </span>
+                </td>
 
-        </div>
+                {/* Status & Harga */}
+                <td className="px-6 py-5 align-middle">
+                  <span
+                    className={`inline-flex items-center px-3 py-1 rounded-md text-xs font-semibold ${
+                      statusSaatIni === "Selesai"
+                        ? "bg-green-100 text-green-700"
+                        : statusSaatIni === "Proses"
+                        ? "bg-blue-100 text-blue-700"
+                        : "bg-yellow-100 text-yellow-700"
+                    }`}
+                  >
+                    {statusSaatIni}
+                  </span>
 
-        {/* A004 */}
-        <div className="flex items-center justify-between bg-white p-4 rounded-xl shadow-sm hover:shadow-md transition">
-          
-          <div className="bg-blue-600 text-white px-6 py-3 rounded-lg text-lg font-bold">
-            A004
-          </div>
+                  <div className="mt-2 text-xs text-gray-500">
+                    Harga
+                  </div>
 
-          <div className="flex-1 ml-4 pl-4 border-l border-gray-200">
-            <p className="font-semibold">Dewi Lestari</p>
-            <p className="text-sm text-gray-500">B 3456 IJ</p>
-            <p className="text-sm text-gray-400">09:15 • Karpet</p>
-          </div>
-
-          <div className="text-right pl-4 border-l border-gray-200">
-            <span className="bg-yellow-400 text-white px-3 py-1 rounded-lg text-sm">
-              Menunggu
-            </span>
-            <p className="text-sm text-gray-500 mt-2">Harga</p>
-            <p className="font-semibold">Rp 35.000</p>
-          </div>
-
-        </div>
-
-        {/* A005 */}
-        <div className="flex items-center justify-between bg-white p-4 rounded-xl shadow-sm hover:shadow-md transition">
-          
-          <div className="bg-blue-600 text-white px-6 py-3 rounded-lg text-lg font-bold">
-            A005
-          </div>
-
-          <div className="flex-1 ml-4 pl-4 border-l border-gray-200">
-            <p className="font-semibold">Eko Prasetyo</p>
-            <p className="text-sm text-gray-500">B 7890 KL</p>
-            <p className="text-sm text-gray-400">09:30 • Motor</p>
-          </div>
-
-          <div className="text-right pl-4 border-l border-gray-200">
-            <span className="bg-green-500 text-white px-3 py-1 rounded-lg text-sm">
-              Selesai
-            </span>
-            <p className="text-sm text-gray-500 mt-2">Harga</p>
-            <p className="font-semibold">Rp 25.000</p>
-          </div>
-
-        </div>
-
+                  <div className="font-semibold text-gray-800">
+                    {cucian.jenis_layanan === "Cuci Mobil"
+                      ? "Rp 50.000"
+                      : cucian.jenis_layanan === "Cuci Motor"
+                      ? "Rp 25.000"
+                      : "Rp 35.000"}
+                  </div>
+                </td>
+              </tr>
+            );
+          }}
+        />
       </div>
     </div>
   );

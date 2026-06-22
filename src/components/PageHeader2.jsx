@@ -8,11 +8,6 @@ export default function PageHeader2() {
           Kelola antrian cucian kendaraan
         </p>
       </div>
-
-      <button className="bg-green-600 text-white px-4 py-2 rounded-lg">
-        + Tambah Cucian
-      </button>
-
     </div>
   );
 }
