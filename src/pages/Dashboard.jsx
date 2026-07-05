@@ -226,51 +226,56 @@ export default function Dashboard() {
                   <p className="text-sm">Belum ada antrian hari ini</p>
                 </div>
               ) : (
-                <div className="relative">
-                  <ResponsiveContainer width="100%" height={200}>
-                    <PieChart>
-                      <Pie
-                        data={[
-                          { name: "Menunggu", value: menunggu },
-                          { name: "Proses", value: dalamProses },
-                          { name: "Selesai", value: selesai },
-                        ]}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={55}
-                        outerRadius={80}
-                        paddingAngle={4}
-                        dataKey="value"
-                      >
-                        <Cell fill="#facc15" />
-                        <Cell fill="#3b82f6" />
-                        <Cell fill="#22c55e" />
-                      </Pie>
-                      <Tooltip
-                        contentStyle={{
-                          borderRadius: "12px",
-                          border: "none",
-                          boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
-                          fontSize: "12px",
-                        }}
-                        formatter={(value, name) => [`${value} antrian`, name]}
-                      />
-                      <Legend
-                        iconType="circle"
-                        iconSize={8}
-                        formatter={(value) => (
-                          <span className="text-xs text-gray-500">{value}</span>
-                        )}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
+                <div>
+                  <div className="relative" style={{ height: 200 }}>
+                    <ResponsiveContainer width="100%" height={200}>
+                      <PieChart>
+                        <Pie
+                          data={[
+                            { name: "Menunggu", value: menunggu },
+                            { name: "Proses", value: dalamProses },
+                            { name: "Selesai", value: selesai },
+                          ]}
+                          cx="50%"
+                          cy="46%"
+                          innerRadius={55}
+                          outerRadius={80}
+                          paddingAngle={4}
+                          dataKey="value"
+                        >
+                          <Cell fill="#facc15" />
+                          <Cell fill="#3b82f6" />
+                          <Cell fill="#22c55e" />
+                        </Pie>
+                        <Tooltip
+                          contentStyle={{
+                            borderRadius: "12px",
+                            border: "none",
+                            boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
+                            fontSize: "12px",
+                          }}
+                          formatter={(value, name) => [`${value} antrian`, name]}
+                        />
+                        <Legend
+                          iconType="circle"
+                          iconSize={8}
+                          formatter={(value) => (
+                            <span className="text-xs text-gray-500">{value}</span>
+                          )}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
 
-                  {/* Angka di tengah donat */}
-                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                    <p className="text-2xl font-bold text-gray-800">
-                      {totalAntrian}
-                    </p>
-                    <p className="text-xs text-gray-400">Antrian</p>
+                    {/* Angka di tengah donat */}
+                    <div
+                      className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none"
+                      style={{ marginBottom: 24 }}
+                    >
+                      <p className="text-2xl font-bold text-gray-800">
+                        {totalAntrian}
+                      </p>
+                      <p className="text-xs text-gray-400">Antrian</p>
+                    </div>
                   </div>
 
                   {/* Tingkat penyelesaian */}

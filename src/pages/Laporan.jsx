@@ -12,6 +12,7 @@ export default function Laporan() {
   const [hasilCari, setHasilCari] = useState([]);
   const [filter, setFilter] = useState("semua");
   const [bulanDipilih, setBulanDipilih] = useState("");
+  const [jenisFilter, setJenisFilter] = useState("semua");
 
   useEffect(() => {
     loadCucian();
@@ -54,14 +55,19 @@ export default function Laporan() {
   useEffect(() => {
     const timeout = setTimeout(() => {
       const selesai = listCucian.filter((c) => c.status === "Selesai");
-      const terfilter = filterByWaktu(selesai);
+      let terfilter = filterByWaktu(selesai);
+
+      if (jenisFilter !== "semua") {
+        terfilter = terfilter.filter((c) => c.jenis_layanan === jenisFilter);
+      }
+
       const hasil = terfilter.filter((c) =>
         c.nama_pelanggan.toLowerCase().includes(search.toLowerCase())
       );
       setHasilCari(hasil);
     }, 300);
     return () => clearTimeout(timeout);
-  }, [search, listCucian, filter, bulanDipilih]);
+  }, [search, listCucian, filter, bulanDipilih, jenisFilter]);
 
   const getHarga = (jenis) => {
     if (jenis === "Cuci Mobil") return 50000;
@@ -71,7 +77,11 @@ export default function Laporan() {
 
   const formatRupiah = (angka) => "Rp " + angka.toLocaleString("id-ID");
 
-  const selesaiFiltered = filterByWaktu(listCucian.filter((c) => c.status === "Selesai"));
+  let selesaiFiltered = filterByWaktu(listCucian.filter((c) => c.status === "Selesai"));
+  if (jenisFilter !== "semua") {
+    selesaiFiltered = selesaiFiltered.filter((c) => c.jenis_layanan === jenisFilter);
+  }
+
   const totalPendapatan = selesaiFiltered.reduce((t, c) => t + getHarga(c.jenis_layanan), 0);
   const totalKendaraan = selesaiFiltered.filter((c) => c.jenis_layanan !== "Karpet").length;
   const totalKarpet = selesaiFiltered.filter((c) => c.jenis_layanan === "Karpet").length;
@@ -85,6 +95,8 @@ export default function Laporan() {
       ? new Date(bulanDipilih + "-01").toLocaleDateString("id-ID", { month: "long", year: "numeric" })
       : "Pilih Bulan",
   };
+
+  const jenisLabel = jenisFilter === "semua" ? "" : ` • ${jenisFilter}`;
 
   return (
     <div className="p-6 bg-gray-100 min-h-screen">
@@ -131,6 +143,25 @@ export default function Laporan() {
             </div>
           </div>
 
+          {/* Filter Jenis Layanan */}
+          <div className="mt-3 flex flex-wrap gap-2">
+            {["semua", "Cuci Mobil", "Cuci Motor", "Karpet"].map((j) => (
+              <button
+                key={j}
+                onClick={() => setJenisFilter(j)}
+                className={`px-4 py-2 rounded-xl text-sm font-medium transition ${
+                  jenisFilter === j
+                    ? "bg-gray-800 text-white shadow-md"
+                    : "bg-white text-gray-500 hover:bg-gray-100 shadow-sm"
+                }`}
+              >
+                {j === "semua" ? "🔖 Semua Layanan" :
+                 j === "Cuci Mobil" ? "🚗 Cuci Mobil" :
+                 j === "Cuci Motor" ? "🏍️ Cuci Motor" : "🪣 Karpet"}
+              </button>
+            ))}
+          </div>
+
           {/* Statistik */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
             <div className="bg-white p-5 rounded-2xl shadow-sm border-t-4 border-orange-400">
@@ -139,7 +170,7 @@ export default function Laporan() {
                 <span>Total Pendapatan</span>
               </div>
               <p className="text-2xl font-bold text-gray-800">{formatRupiah(totalPendapatan)}</p>
-              <p className="text-xs text-gray-400 mt-1">{filterLabel[filter]} • {selesaiFiltered.length} transaksi</p>
+              <p className="text-xs text-gray-400 mt-1">{filterLabel[filter]}{jenisLabel} • {selesaiFiltered.length} transaksi</p>
             </div>
 
             <div className="bg-white p-5 rounded-2xl shadow-sm border-t-4 border-green-500">
@@ -166,7 +197,9 @@ export default function Laporan() {
             <div className="flex items-center justify-between mb-4">
               <p className="font-semibold text-gray-700">
                 Riwayat Transaksi Selesai
-                <span className="ml-2 text-xs text-orange-500 font-normal">({filterLabel[filter]})</span>
+                <span className="ml-2 text-xs text-orange-500 font-normal">
+                  ({filterLabel[filter]}{jenisLabel})
+                </span>
               </p>
               <input
                 type="text"
@@ -181,7 +214,7 @@ export default function Laporan() {
               <div className="text-center text-gray-400 py-10">
                 {search
                   ? `Tidak ada hasil untuk "${search}"`
-                  : `Belum ada transaksi ${filterLabel[filter].toLowerCase()}.`}
+                  : `Belum ada transaksi ${filterLabel[filter].toLowerCase()}${jenisLabel}.`}
               </div>
             ) : (
               <table className="w-full text-sm">
@@ -189,7 +222,7 @@ export default function Laporan() {
                   <tr className="text-gray-500 border-b bg-gray-50">
                     <th className="text-left py-3 px-3">No</th>
                     <th className="text-left py-3 px-3">Nama Pelanggan</th>
-                    <th className="text-left py-3 px-3">No. Kendaraan</th>
+                    <th className="text-left py-3 px-3">No. Kendaraan / Karpet</th>
                     <th className="text-left py-3 px-3">Jenis Layanan</th>
                     <th className="text-left py-3 px-3">Total Bayar</th>
                     <th className="text-left py-3 px-3">Status</th>
