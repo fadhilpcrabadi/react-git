@@ -85,7 +85,7 @@ export default function Tambah() {
 
             <div>
               <label className="text-sm font-medium text-gray-700">
-                Plat Nomor Kendaraan / Nomor Karpet
+                Plat Nomor Kendaraan / Nomor Hp Karpet
               </label>
               <input
                 type="text"

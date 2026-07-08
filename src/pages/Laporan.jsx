@@ -13,6 +13,8 @@ export default function Laporan() {
   const [filter, setFilter] = useState("semua");
   const [bulanDipilih, setBulanDipilih] = useState("");
   const [jenisFilter, setJenisFilter] = useState("semua");
+  const [halaman, setHalaman] = useState(1);
+  const perHalaman = 6;
 
   useEffect(() => {
     loadCucian();
@@ -34,9 +36,7 @@ export default function Laporan() {
     const now = new Date();
     return data.filter((c) => {
       const tgl = new Date(c.created_at);
-      if (filter === "hari") {
-        return tgl.toDateString() === now.toDateString();
-      }
+      if (filter === "hari") return tgl.toDateString() === now.toDateString();
       if (filter === "minggu") {
         const diffDays = (now - tgl) / (1000 * 60 * 60 * 24);
         return diffDays <= 7;
@@ -56,15 +56,14 @@ export default function Laporan() {
     const timeout = setTimeout(() => {
       const selesai = listCucian.filter((c) => c.status === "Selesai");
       let terfilter = filterByWaktu(selesai);
-
       if (jenisFilter !== "semua") {
         terfilter = terfilter.filter((c) => c.jenis_layanan === jenisFilter);
       }
-
       const hasil = terfilter.filter((c) =>
         c.nama_pelanggan.toLowerCase().includes(search.toLowerCase())
       );
       setHasilCari(hasil);
+      setHalaman(1); // reset ke halaman 1 saat filter berubah
     }, 300);
     return () => clearTimeout(timeout);
   }, [search, listCucian, filter, bulanDipilih, jenisFilter]);
@@ -76,6 +75,20 @@ export default function Laporan() {
   };
 
   const formatRupiah = (angka) => "Rp " + angka.toLocaleString("id-ID");
+
+  const formatTanggal = (iso) => {
+    if (!iso) return "-";
+    return new Date(iso).toLocaleDateString("id-ID", {
+      day: "numeric", month: "short", year: "numeric",
+    });
+  };
+
+  const formatWaktu = (iso) => {
+    if (!iso) return "-";
+    return new Date(iso).toLocaleTimeString("id-ID", {
+      hour: "2-digit", minute: "2-digit",
+    });
+  };
 
   let selesaiFiltered = filterByWaktu(listCucian.filter((c) => c.status === "Selesai"));
   if (jenisFilter !== "semua") {
@@ -97,6 +110,22 @@ export default function Laporan() {
   };
 
   const jenisLabel = jenisFilter === "semua" ? "" : ` • ${jenisFilter}`;
+
+  // Pagination
+  const totalHalaman = Math.ceil(hasilCari.length / perHalaman);
+  const dataHalaman = hasilCari.slice((halaman - 1) * perHalaman, halaman * perHalaman);
+
+  const getBorderColor = (jenis) => {
+    if (jenis === "Cuci Mobil") return "border-blue-400";
+    if (jenis === "Cuci Motor") return "border-purple-400";
+    return "border-amber-400";
+  };
+
+  const getBadgeColor = (jenis) => {
+    if (jenis === "Cuci Mobil") return "bg-blue-100 text-blue-700";
+    if (jenis === "Cuci Motor") return "bg-purple-100 text-purple-700";
+    return "bg-amber-100 text-amber-700";
+  };
 
   return (
     <div className="p-6 bg-gray-100 min-h-screen">
@@ -124,7 +153,6 @@ export default function Laporan() {
               </button>
             ))}
 
-            {/* Pilih Bulan Manual */}
             <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl shadow-sm border transition ${
               filter === "pilihbulan" ? "bg-orange-500 border-orange-500" : "bg-white border-gray-100"
             }`}>
@@ -132,10 +160,7 @@ export default function Laporan() {
               <input
                 type="month"
                 value={bulanDipilih}
-                onChange={(e) => {
-                  setBulanDipilih(e.target.value);
-                  setFilter("pilihbulan");
-                }}
+                onChange={(e) => { setBulanDipilih(e.target.value); setFilter("pilihbulan"); }}
                 className={`text-sm focus:outline-none bg-transparent ${
                   filter === "pilihbulan" ? "text-white" : "text-gray-600"
                 }`}
@@ -192,77 +217,125 @@ export default function Laporan() {
             </div>
           </div>
 
-          {/* Tabel */}
-          <div className="bg-white mt-6 p-5 rounded-2xl shadow-sm">
-            <div className="flex items-center justify-between mb-4">
+          {/* Header Riwayat + Search */}
+          <div className="mt-6 flex items-center justify-between">
+            <div>
               <p className="font-semibold text-gray-700">
                 Riwayat Transaksi Selesai
                 <span className="ml-2 text-xs text-orange-500 font-normal">
                   ({filterLabel[filter]}{jenisLabel})
                 </span>
               </p>
-              <input
-                type="text"
-                placeholder="🔍 Cari nama pelanggan..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="border border-gray-200 bg-gray-50 px-4 py-2 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 w-64"
-              />
+              <p className="text-xs text-gray-400 mt-0.5">
+                {hasilCari.length} transaksi • Total {formatRupiah(hasilCari.reduce((t, c) => t + getHarga(c.jenis_layanan), 0))}
+              </p>
             </div>
-
-            {hasilCari.length === 0 ? (
-              <div className="text-center text-gray-400 py-10">
-                {search
-                  ? `Tidak ada hasil untuk "${search}"`
-                  : `Belum ada transaksi ${filterLabel[filter].toLowerCase()}${jenisLabel}.`}
-              </div>
-            ) : (
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-gray-500 border-b bg-gray-50">
-                    <th className="text-left py-3 px-3">No</th>
-                    <th className="text-left py-3 px-3">Nama Pelanggan</th>
-                    <th className="text-left py-3 px-3">No. Kendaraan / Karpet</th>
-                    <th className="text-left py-3 px-3">Jenis Layanan</th>
-                    <th className="text-left py-3 px-3">Total Bayar</th>
-                    <th className="text-left py-3 px-3">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {hasilCari.map((cucian, i) => (
-                    <tr key={cucian.id} className="border-b hover:bg-gray-50 transition">
-                      <td className="py-3 px-3 text-gray-400">{i + 1}</td>
-                      <td className="py-3 px-3 font-medium text-gray-800">{cucian.nama_pelanggan}</td>
-                      <td className="py-3 px-3 text-gray-500">{cucian.no_kendaraan}</td>
-                      <td className="py-3 px-3">
-                        {cucian.jenis_layanan === "Cuci Mobil" ? "🚗" :
-                         cucian.jenis_layanan === "Cuci Motor" ? "🏍️" : "🪣"} {cucian.jenis_layanan}
-                      </td>
-                      <td className="py-3 px-3 font-semibold text-green-600">
-                        {formatRupiah(getHarga(cucian.jenis_layanan))}
-                      </td>
-                      <td className="py-3 px-3">
-                        <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-medium">
-                          ✅ Selesai
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-                <tfoot>
-                  <tr className="border-t-2 bg-gray-50">
-                    <td colSpan={4} className="py-3 px-3 font-semibold text-gray-600">
-                      Total ({hasilCari.length} transaksi)
-                    </td>
-                    <td className="py-3 px-3 font-bold text-green-600">
-                      {formatRupiah(hasilCari.reduce((t, c) => t + getHarga(c.jenis_layanan), 0))}
-                    </td>
-                    <td></td>
-                  </tr>
-                </tfoot>
-              </table>
-            )}
+            <input
+              type="text"
+              placeholder="🔍 Cari nama pelanggan..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="border border-gray-200 bg-white px-4 py-2 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 w-64"
+            />
           </div>
+
+          {/* Card Grid */}
+          {hasilCari.length === 0 ? (
+            <div className="text-center text-gray-400 py-16 bg-white rounded-2xl mt-4">
+              <p className="text-4xl mb-3">📭</p>
+              <p className="font-medium">
+                {search ? `Tidak ada hasil untuk "${search}"` : `Belum ada transaksi ${filterLabel[filter].toLowerCase()}${jenisLabel}.`}
+              </p>
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                {dataHalaman.map((cucian, i) => (
+                  <div
+                    key={cucian.id}
+                    className={`bg-white rounded-2xl shadow-sm hover:shadow-md transition border-l-4 ${getBorderColor(cucian.jenis_layanan)}`}
+                  >
+                    <div className="p-4 flex gap-4">
+                      {/* Foto */}
+                      {cucian.foto ? (
+                        <img
+                          src={`http://127.0.0.1:8000/storage/${cucian.foto}`}
+                          alt="Foto"
+                          className="w-20 h-20 object-cover rounded-xl border border-gray-100 flex-shrink-0"
+                        />
+                      ) : (
+                        <div className="w-20 h-20 bg-gray-50 rounded-xl border border-gray-100 flex items-center justify-center text-3xl flex-shrink-0">
+                          {cucian.jenis_layanan === "Cuci Mobil" ? "🚗" :
+                           cucian.jenis_layanan === "Cuci Motor" ? "🏍️" : "🪣"}
+                        </div>
+                      )}
+
+                      {/* Info */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="font-semibold text-gray-800 truncate">{cucian.nama_pelanggan}</p>
+                          <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-xs font-medium flex-shrink-0">
+                            ✅ Selesai
+                          </span>
+                        </div>
+
+                        <p className="text-sm text-gray-500 mt-0.5">{cucian.no_kendaraan}</p>
+
+                        <span className={`inline-block mt-1 px-2 py-0.5 rounded-lg text-xs font-medium ${getBadgeColor(cucian.jenis_layanan)}`}>
+                          {cucian.jenis_layanan === "Cuci Mobil" ? "🚗" :
+                           cucian.jenis_layanan === "Cuci Motor" ? "🏍️" : "🪣"} {cucian.jenis_layanan}
+                        </span>
+
+                        <div className="mt-2 flex items-center justify-between">
+                          <p className="text-xs text-gray-400">
+                            {formatTanggal(cucian.created_at)} • {formatWaktu(cucian.created_at)}
+                          </p>
+                          <p className="font-bold text-green-600 text-sm">
+                            {formatRupiah(getHarga(cucian.jenis_layanan))}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Pagination */}
+              {totalHalaman > 1 && (
+                <div className="mt-6 flex items-center justify-center gap-3">
+                  <button
+                    onClick={() => setHalaman((h) => Math.max(h - 1, 1))}
+                    disabled={halaman === 1}
+                    className="px-4 py-2 rounded-xl text-sm font-medium bg-white shadow-sm disabled:opacity-40 hover:bg-gray-50 transition"
+                  >
+                    ← Prev
+                  </button>
+
+                  {Array.from({ length: totalHalaman }, (_, i) => i + 1).map((h) => (
+                    <button
+                      key={h}
+                      onClick={() => setHalaman(h)}
+                      className={`w-9 h-9 rounded-xl text-sm font-medium transition ${
+                        halaman === h
+                          ? "bg-orange-500 text-white shadow-md"
+                          : "bg-white text-gray-500 hover:bg-gray-50 shadow-sm"
+                      }`}
+                    >
+                      {h}
+                    </button>
+                  ))}
+
+                  <button
+                    onClick={() => setHalaman((h) => Math.min(h + 1, totalHalaman))}
+                    disabled={halaman === totalHalaman}
+                    className="px-4 py-2 rounded-xl text-sm font-medium bg-white shadow-sm disabled:opacity-40 hover:bg-gray-50 transition"
+                  >
+                    Next →
+                  </button>
+                </div>
+              )}
+            </>
+          )}
         </>
       )}
     </div>
